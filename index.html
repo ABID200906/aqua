@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aqupon.id - Dashboard Aquaponik</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <style>
+        :root {
+            --primary-color: #009688;
+            --primary-dark: #00766c;
+            --secondary-color: #4DB6AC;
+            --warning-color: #FF8A65;
+            --danger-color: #E57373;
+            --success-color: #81C784;
+            --dark-bg: #1a202c;
+            --dark-card: #2d3748;
+            --text-primary: #2d3748;
+            --text-secondary: #718096;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: background-color 0.3s, color 0.3s;
+            background-color: #f7fafc;
+            color: var(--text-primary);
+        }
+
+        .dark-mode {
+            background-color: var(--dark-bg);
+            color: #e2e8f0;
+        }
+
+        /* Background image styles */
+        #login-page {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), 
+                        url('background.png') no-repeat center center;
+            background-size: cover;
+            position: relative;
+        }
+
+        .dark-mode #login-page {
+            background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), 
+                        url('https://images.unsplash.com/photo-1416879595882-3373a0480b5b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80') no-repeat center center;
+            background-size: cover;
+        }
+
+        .card {
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s, box-shadow 0.2s;
+            background: white;
+            overflow: hidden;
+        }
+
+        .dark-card {
+            background-color: var(--dark-card);
+            color: #e2e8f0;
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .tab-active {
+            position: relative;
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .tab-active::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 25%;
+            width: 50%;
+            height: 3px;
+            background-color: var(--primary-color);
+            border-radius: 3px;
+        }
+
+        .mini-chart {
+            height: 40px;
+            width: 100%;
+        }
+
+        .pulse-button {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(0, 150, 136, 0.7);
+            }
+            
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 10px rgba(0, 150, 136, 0);
+            }
+            
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(0, 150, 136, 0);
+            }
+        }
+
+        .login-card {
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+            background: rgba(255, 255, 255, 0.95);
+        }
+
+        .dark-mode .login-card {
+            background: rgba(45, 55, 72, 0.95);
+        }
+
+        .login-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            transition: background-color 0.3s;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .input-field {
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .input-field:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(0, 150, 136, 0.2);
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            color: #718096;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .divider::before {
+            margin-right: 0.5em;
+        }
+
+        .divider::after {
+            margin-left: 0.5em;
+        }
+
+        .dark-mode .divider::before,
+        .dark-mode .divider::after {
+            border-bottom: 1px solid #4a5568;
+        }
+
+        .page-section {
+            display: none;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .active-section {
+            display: block;
+        }
+
+        #app-container {
+            display: none;
+            min-height: 100vh;
+        }
+
+        .status-ok {
+            color: var(--success-color);
+            font-weight: bold;
+        }
+
+        .status-warning {
+            color: var(--warning-color);
+            font-weight: bold;
+        }
+
+        .status-error {
+            color: var(--danger-color);
+            font-weight: bold;
+        }
+
+        .feature-button {
+            padding: 10px 12px;
+            border: 0;
+            border-radius: 8px;
+            background: var(--primary-color);
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .feature-button:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .feature-button.alt {
+            background: #455a64;
+        }
+
+        .feature-button.alt:hover {
+            background: #37474f;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 12px;
+            margin-top: 15px;
+        }
+
+        #toast {
+            position: fixed;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: 24px;
+            background: var(--dark-card);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .value {
+            font-size: 22px;
+            font-weight: 700;
+            margin: 6px 0 10px;
+        }
+
+        .sensor-value {
+            font-size: 24px;
+            font-weight: 700;
+            margin: 4px 0;
+        }
+
+        .sensor-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .dark-mode .sensor-label {
+            color: #a0aec0;
+        }
+
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-normal {
+            background-color: rgba(76, 175, 80, 0.15);
+            color: #2e7d32;
+        }
+
+        .dark-mode .badge-normal {
+            background-color: rgba(76, 175, 80, 0.25);
+            color: #81c784;
+        }
+
+        .badge-warning {
+            background-color: rgba(255, 152, 0, 0.15);
+            color: #f57c00;
+        }
+
+        .dark-mode .badge-warning {
+            background-color: rgba(255, 152, 0, 0.25);
+            color: #ffb74d;
+        }
+
+        .badge-error {
+            background-color: rgba(244, 67, 54, 0.15);
+            color: #d32f2f;
+        }
+
+        .dark-mode .badge-error {
+            background-color: rgba(244, 67, 54, 0.25);
+            color: #e57373;
+        }
+
+        .nav-bottom {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            padding: 12px 0;
+            z-index: 50;
+        }
+
+        .dark-mode .nav-bottom {
+            background: var(--dark-card);
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .connection-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .connection-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .connection-connected {
+            background-color: rgba(76, 175, 80, 0.15);
+            color: #2e7d32;
+        }
+
+        .connection-connecting {
+            background-color: rgba(255, 152, 0, 0.15);
+            color: #f57c00;
+        }
+
+        .connection-error {
+            background-color: rgba(244, 67, 54, 0.15);
+            color: #d32f2f;
+        }
+
+        .dark-mode .connection-connected {
+            background-color: rgba(76, 175, 80, 0.25);
+            color: #81c784;
+        }
+
+        .dark-mode .connection-connecting {
+            background-color: rgba(255, 152, 0, 0.25);
+            color: #ffb74d;
+        }
+
+        .dark-mode .connection-error {
+            background-color: rgba(244, 67, 54, 0.25);
+            color: #e57373;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Toast Notification -->
+    <div id="toast"></div>
+
+    <!-- Login Page -->
+    <div id="login-page">
+        <div class="fixed top-4 right-4">
+            <button id="darkModeToggle" class="p-2 rounded-full bg-gray-200 dark:bg-gray-700 shadow-md">
+                <i class="fas fa-moon text-gray-700 dark:text-yellow-300"></i>
+            </button>
+        </div>
+
+        <div class="w-full max-w-md">
+            <!-- Logo -->
+            <div class="text-center mb-8">
+                <div class="flex justify-center mb-4">
+                    <img src="logo.jpg" alt="Aqupon.id Logo" class="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900">
+                </div>
+                <h1 class="text-3xl font-bold text-white">Aqupon.id</h1>
+                <p class="text-gray-200 mt-2">Sistem Monitoring Aquaponik Modern</p>
+            </div>
+            <!-- Login Card -->
+            <div class="login-card p-8 dark:bg-gray-800">
+                <form id="loginForm" class="space-y-6">
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+                        <input 
+                            type="email" 
+                            id="email" 
+                            required 
+                            class="input-field w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                            placeholder="nama@email.com"
+                        >
+                    </div>
+
+                    <div>
+                        <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kata Sandi</label>
+                        <input 
+                            type="password" 
+                            id="password" 
+                            required 
+                            class="input-field w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                            placeholder="Masukkan kata sandi"
+                        >
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <input 
+                                type="checkbox" 
+                                id="remember" 
+                                class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                            >
+                            <label for="remember" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">Ingat saya</label>
+                        </div>
+
+                        <a href="#" class="text-sm text-green-600 hover:text-green-500 dark:text-green-400">Lupa kata sandi?</a>
+                    </div>
+
+                    <button 
+                        type="submit" 
+                        class="btn-primary w-full py-2 px-4 text-white rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 shadow-md"
+                    >
+                        <i class="fas fa-sign-in-alt mr-2"></i>Masuk
+                    </button>
+                </form>
+
+                <div class="mt-6">
+                    <div class="divider text-sm">Atau lanjutkan dengan</div>
+
+                    <div class="grid grid-cols-2 gap-3 mt-4">
+                        <button 
+                            type="button" 
+                            class="flex items-center justify-center py-2 px-4 border border-gray-300 rounded-md text-gray-700 dark:text-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                        >
+                            <i class="fab fa-google mr-2 text-red-500"></i>
+                            Google
+                        </button>
+                        <button 
+                            type="button" 
+                            class="flex items-center justify-center py-2 px-4 border border-gray-300 rounded-md text-gray-700 dark:text-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                        >
+                            <i class="fab fa-facebook mr-2 text-blue-600"></i>
+                            Facebook
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mt-6 text-center">
+                    <p class="text-sm text-gray-700 dark:text-gray-300">
+                        Belum punya akun? 
+                        <a href="#" class="text-green-600 hover:text-green-500 dark:text-green-400 font-medium">Daftar sekarang</a>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="text-center mt-6">
+                <p class="text-xs text-white">
+                    &copy; 2025 Aqupon.id. All rights reserved.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- App Container (Dashboard dll) -->
+    <div id="app-container" class="dark:bg-gray-900 pb-16">
+        <!-- Header -->
+        <header class="sticky top-0 z-10 bg-white shadow-md py-4 px-4 flex justify-between items-center dark:bg-gray-800">
+            <div class="flex items-center">
+                <div class="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mr-3">
+                    <img src='Logo.jpg'></i>
+                </div>
+                <h1 class="text-xl font-bold text-green-600 dark:text-green-400">LihatKebunku</h1>
+            </div>
+            <div class="flex items-center">
+                <span id="connection-status" class="connection-status mr-3">
+                    <span class="connection-dot bg-green-500" id="connection-dot"></span>
+                    <span id="connection-text">Menyambungkan...</span>
+                </span>
+                <button id="app-darkModeToggle" class="p-2 rounded-full bg-gray-200 dark:bg-gray-700 mr-2 shadow-md">
+                    <i class="fas fa-moon text-gray-700 dark:text-yellow-300"></i>
+                </button>
+                <button id="logout-btn" class="p-2 rounded-full bg-gray-200 dark:bg-gray-700 shadow-md">
+                    <i class="fas fa-sign-out-alt text-gray-700 dark:text-gray-300"></i>
+                </button>
+            </div>
+        </header>
+
+        <main class="container mx-auto px-4 pb-4 pt-4">
+            <!-- Dashboard Section -->
+            <section id="dashboard" class="page-section active-section">
+                <!-- Status Sistem Card -->
+                <div class="card bg-white p-4 mb-6 dark:dark-card">
+                    <h2 class="text-xl font-semibold mb-4">Status Sistem</h2>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="bg-green-100 p-3 rounded-lg text-center dark:bg-green-900 dark:bg-opacity-30">
+                            <p id="healthScore" class="text-2xl font-bold text-green-600 dark:text-green-400">92%</p>
+                            <p class="text-sm text-gray-600 dark:text-gray-300">Kesehatan</p>
+                        </div>
+                        <div class="bg-blue-100 p-3 rounded-lg text-center dark:bg-blue-900 dark:bg-opacity-30">
+                            <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">5</p>
+                            <p class="text-sm text-gray-600 dark:text-gray-300">Sensor Normal</p>
+                        </div>
+                        <div class="bg-orange-100 p-3 rounded-lg text-center dark:bg-orange-900 dark:bg-opacity-30">
+                            <p class="text-2xl font-bold text-orange-600 dark:text-orange-400">1</p>
+                            <p class="text-sm text-gray-600 dark:text-gray-300">Perlu Perhatian</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sensor Cards Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- pH Air Card -->
+                    <div class="card bg-white p-4 dark:dark-card">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <div class="sensor-label">pH Air</div>
+                                <p id="phValue" class="sensor-value">6.8</p>
+                            </div>
+                            <span class="status-badge badge-normal">Normal</span>
+                        </div>
+                        <div class="mini-chart mt-2">
+                            <canvas id="phChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- TDS Air Card -->
+                    <div class="card bg-white p-4 dark:dark-card">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <div class="sensor-label">TDS Air</div>
+                                <p id="tdsValue" class="sensor-value">520 ppm</p>
+                            </div>
+                            <span class="status-badge badge-normal">Normal</span>
+                        </div>
+                        <div class="mini-chart mt-2">
+                            <canvas id="tdsChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Panel Surya Card -->
+                    <div class="card bg-white p-4 dark:dark-card">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <div class="sensor-label">Panel Surya</div>
+                                <p id="powerValue" class="sensor-value">78%</p>
+                            </div>
+                            <span class="status-badge badge-normal">Normal</span>
+                        </div>
+                        <div class="mini-chart mt-2">
+                            <canvas id="powerChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Suhu Udara Card -->
+                    <div class="card bg-white p-4 dark:dark-card">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <div class="sensor-label">Suhu Udara</div>
+                                <p id="airTempValue" class="sensor-value">30.2°C</p>
+                            </div>
+                            <span class="status-badge badge-normal">Normal</span>
+                        </div>
+                        <div class="mini-chart mt-2">
+                            <canvas id="airTempChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Kelembapan Card -->
+                    <div class="card bg-white p-4 dark:dark-card">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <div class="sensor-label">Kelembapan</div>
+                                <p id="humValue" class="sensor-value">65%</p>
+                            </div>
+                            <span class="status-badge badge-normal">Normal</span>
+                        </div>
+                        <div class="mini-chart mt-2">
+                            <canvas id="humChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Kontrol Section -->
+            <section id="kontrol" class="page-section">
+                <!-- Status Perangkat Card -->
+                <div class="card bg-white p-4 mb-6 dark:dark-card">
+                    <h2 class="text-xl font-semibold mb-4">Status Perangkat</h2>
+                    <div class="bg-blue-100 p-4 rounded-lg text-center dark:bg-blue-900 dark:bg-opacity-30">
+                        <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">2/4</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-300">Perangkat Aktif</p>
+                    </div>
+                </div>
+
+                <!-- Kontrol Perangkat Card -->
+                <div class="card bg-white p-4 mb-6 dark:dark-card">
+                    <h2 class="text-xl font-semibold mb-4">Kontrol Perangkat</h2>
+                    
+                    <div class="flex items-center justify-between py-3 border-b border-gray-200 dark:border-gray-700">
+                        <div class="flex items-center">
+                            <div class="bg-yellow-100 p-2 rounded-full mr-3 dark:bg-yellow-900 dark:bg-opacity-30">
+                                <i class="fas fa-lightbulb text-yellow-500"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-medium">Lampu UV</h3>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">Status: <span id="lamp-status">Mati</span></p>
+                            </div>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="lamp-toggle" class="sr-only peer">
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
+                        </label>
+                    </div>
+
+                    <div class="flex items-center justify-between py-3">
+                        <div class="flex items-center">
+                            <div class="bg-blue-100 p-2 rounded-full mr-3 dark:bg-blue-900 dark:bg-opacity-30">
+                                <i class="fas fa-tint text-blue-500"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-medium">Pompa Air</h3>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">Status: <span id="pump-status">Mati</span></p>
+                            </div>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="pump-toggle" class="sr-only peer">
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Aksi Manual Card -->
+                <div class="card bg-white p-4 dark:dark-card">
+                    <h2 class="text-xl font-semibold mb-4">Aksi Manual</h2>
+                    <div class="features-grid">
+                        <button id="feed-btn" class="feature-button" onclick="ctrlPakan()">
+                            <i class="fas fa-utensils mr-2"></i>Beri Pakan
+                        </button>
+                        <button id="uv-on-btn" class="feature-button" onclick="ctrlUV(true)">
+                            <i class="fas fa-lightbulb mr-2"></i>UV On
+                        </button>
+                        <button id="uv-off-btn" class="feature-button" onclick="ctrlUV(false)">
+                            <i class="fas fa-lightbulb mr-2"></i>UV Off
+                        </button>
+                        <button id="pump-on-btn" class="feature-button" onclick="ctrlPompa(true)">
+                            <i class="fas fa-tint mr-2"></i>Pompa On
+                        </button>
+                        <button id="pump-off-btn" class="feature-button" onclick="ctrlPompa(false)">
+                            <i class="fas fa-tint mr-2"></i>Pompa Off
+                        </button>
+                        <button id="refresh-btn" class="feature-button alt" onclick="refreshNow()">
+                            <i class="fas fa-sync mr-2"></i>Refresh
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Riwayat Section -->
+            <section id="riwayat" class="page-section">
+                <div class="card bg-white p-4 dark:dark-card">
+                    <h2 class="text-xl font-semibold mb-4">Riwayat Aktivitas</h2>
+                    <div class="border rounded-lg overflow-hidden dark:border-gray-700">
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                <thead class="bg-gray-50 dark:bg-gray-800">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Waktu</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Aktivitas</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+                                    <tr>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">10:45:23</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">Pemberian Pakan</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-green-600 dark:text-green-400">Berhasil</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">10:30:12</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">Penyesuaian pH</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-green-600 dark:text-green-400">Berhasil</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">09:15:47</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">Penyiraman Otomatis</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-green-600 dark:text-green-400">Berhasil</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">08:20:33</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">Pemantauan Nutrisi</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-orange-600 dark:text-orange-400">Perhatian</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">07:45:19</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">Pengecekan Suhu</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-green-600 dark:text-green-400">Berhasil</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Pengaturan Section -->
+            <section id="pengaturan" class="page-section">
+                <div class="card bg-white p-4 dark:dark-card">
+                    <h2 class="text-xl font-semibold mb-4">Pengaturan Aplikasi</h2>
+                    
+                    <div class="py-3 border-b border-gray-200 dark:border-gray-700">
+                        <h3 class="font-medium mb-2">Notifikasi</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">Kelola notifikasi yang ingin Anda terima</p>
+                        <div class="flex items-center justify-between mb-2">
+                            <span>Peringatan Sistem</span>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" class="sr-only peer" checked>
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
+                            </label>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span>Pembaruan Data</span>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" class="sr-only peer" checked>
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="py-3 border-b border-gray-200 dark:border-gray-700">
+                        <h3 class="font-medium mb-2">Interval Pembaruan</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">Atur seberapa sering data diperbarui</p>
+                        <select class="w-full p-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                            <option>30 Detik</option>
+                            <option selected>1 Menit</option>
+                            <option>5 Menit</option>
+                            <option>10 Menit</option>
+                        </select>
+                    </div>
+
+                    <div class="py-3">
+                        <h3 class="font-medium mb-2">Tentang Aplikasi</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">LihatKebunku.id v1.0.0</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">© 2023 Tim LihatKebunku</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">Status koneksi: <span class="status-ok">Realtime</span></p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Bottom Navigation Bar -->
+        <nav class="nav-bottom">
+            <div class="flex justify-around items-center">
+                <a href="#" data-section="dashboard" class="flex flex-col items-center text-xs tab-active">
+                    <i class="fas fa-chart-pie text-green-600 dark:text-green-400 mb-1"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" data-section="kontrol" class="flex flex-col items-center text-xs text-gray-500 dark:text-gray-400">
+                    <i class="fas fa-sliders-h mb-1"></i>
+                    <span>Kontrol</span>
+                </a>
+                <a href="#" data-section="riwayat" class="flex flex-col items-center text-xs text-gray-500 dark:text-gray-400">
+                    <i class="fas fa-history mb-1"></i>
+                    <span>Riwayat</span>
+                </a>
+                <a href="#" data-section="pengaturan" class="flex flex-col items-center text-xs text-gray-500 dark:text-gray-400">
+                    <i class="fas fa-cog mb-1"></i>
+                    <span>Pengaturan</span>
+                </a>
+            </div>
+        </nav>
+    </div>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAJEYT_wfX1JtE0-DuTY63DEUzAouPrMKQ",
+            authDomain: "aqupon-543f8.firebaseapp.com",
+            databaseURL: "https://aqupon-543f8-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "aqupon-543f8",
+            storageBucket: "aqupon-543f8.appspot.com",
+            messagingSenderId: "648650147959",
+            appId: "1:648650147959:web:2ba5a0cbc76019bcd71e72"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // DOM Elements
+        const loginPage = document.getElementById('login-page');
+        const appContainer = document.getElementById('app-container');
+        const loginForm = document.getElementById('loginForm');
+        const logoutBtn = document.getElementById('logout-btn');
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        const appDarkModeToggle = document.getElementById('app-darkModeToggle');
+        const pageSections = document.querySelectorAll('.page-section');
+        const navLinks = document.querySelectorAll('nav a');
+        const connectionStatus = document.getElementById('connection-status');
+        const connectionText = document.getElementById('connection-text');
+        const connectionDot = document.getElementById('connection-dot');
+        
+        // Chart instances
+        const charts = {};
+
+        // Toast notification function
+        function toast(msg, isError = false) {
+            const el = document.getElementById("toast");
+            el.innerHTML = `<i class="fas ${isError ? 'fa-exclamation-circle' : 'fa-check-circle'} mr-2"></i> ${msg}`;
+            el.style.opacity = 1;
+            setTimeout(() => (el.style.opacity = 0), 3000);
+        }
+
+        // Update connection status
+        function updateConnectionStatus(connected) {
+            if (connected) {
+                connectionStatus.className = 'connection-status connection-connected';
+                connectionText.textContent = 'Terhubung';
+                connectionDot.className = 'connection-dot bg-green-500';
+            } else {
+                connectionStatus.className = 'connection-status connection-error';
+                connectionText.textContent = 'Terputus';
+                connectionDot.className = 'connection-dot bg-red-500';
+                toast('Koneksi terputus. Memuat data offline...', true);
+            }
+        }
+
+        // Initialize mini charts
+        function initCharts() {
+            const chartConfig = {
+                type: 'line',
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { enabled: false }
+                    },
+                    scales: {
+                        x: { display: false },
+                        y: { display: false }
+                    },
+                    elements: {
+                        point: { radius: 0 },
+                        line: { 
+                            tension: 0.4,
+                            borderWidth: 2
+                        }
+                    }
+                }
+            };
+
+            // Create charts for each sensor
+            charts.ph = new Chart(document.getElementById('phChart'), {
+                ...chartConfig,
+                data: {
+                    labels: Array.from({length: 10}, (_, i) => i + 1),
+                    datasets: [{
+                        data: [6.5, 6.6, 6.7, 6.8, 6.8, 6.9, 6.8, 6.8, 6.7, 6.8],
+                        fill: true,
+                        backgroundColor: 'rgba(0, 150, 136, 0.1)',
+                        borderColor: '#009688'
+                    }]
+                }
+            });
+
+            charts.tds = new Chart(document.getElementById('tdsChart'), {
+                ...chartConfig,
+                data: {
+                    labels: Array.from({length: 10}, (_, i) => i + 1),
+                    datasets: [{
+                        data: [500, 510, 515, 520, 518, 522, 520, 519, 520, 520],
+                        fill: true,
+                        backgroundColor: 'rgba(156, 39, 176, 0.1)',
+                        borderColor: '#9C27B0'
+                    }]
+                }
+            });
+
+            charts.power = new Chart(document.getElementById('powerChart'), {
+                ...chartConfig,
+                data: {
+                    labels: Array.from({length: 10}, (_, i) => i + 1),
+                    datasets: [{
+                        data: [75, 76, 77, 78, 77, 78, 77, 78, 78, 78],
+                        fill: true,
+                        backgroundColor: 'rgba(255, 152, 0, 0.1)',
+                        borderColor: '#FF9800'
+                    }]
+                }
+            });
+
+            charts.airTemp = new Chart(document.getElementById('airTempChart'), {
+                ...chartConfig,
+                data: {
+                    labels: Array.from({length: 10}, (_, i) => i + 1),
+                    datasets: [{
+                        data: [29.5, 29.8, 30.0, 30.2, 30.1, 30.3, 30.2, 30.1, 30.2, 30.2],
+                        fill: true,
+                        backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                        borderColor: '#F44336'
+                    }]
+                }
+            });
+
+            charts.hum = new Chart(document.getElementById('humChart'), {
+                ...chartConfig,
+                data: {
+                    labels: Array.from({length: 10}, (_, i) => i + 1),
+                    datasets: [{
+                        data: [60, 62, 63, 64, 65, 64, 65, 65, 64, 65],
+                        fill: true,
+                        backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                        borderColor: '#4CAF50'
+                    }]
+                }
+            });
+        }
+
+        // Update sensor data from Firebase
+        function updateSensorData() {
+            const sensorsRef = database.ref('data');
+            
+            sensorsRef.on('value', (snapshot) => {
+                const data = snapshot.val();
+                
+                if (data) {
+                    document.getElementById('phValue').textContent = data.ph?.toFixed(1) || '6.8';
+                    document.getElementById('tdsValue').textContent = (data.tds || 520) + ' ppm';
+                    document.getElementById('powerValue').textContent = (data.dayaPanel || 78) + '%';
+                    document.getElementById('airTempValue').textContent = (data.suhuUdara || 30.2).toFixed(1) + '°C';
+                    document.getElementById('humValue').textContent = (data.kelembapan || 65) + '%';
+                    
+                    // Update connection status
+                    updateConnectionStatus(true);
+                }
+            }, (error) => {
+                console.error("Error reading from Firebase:", error);
+                updateConnectionStatus(false);
+            });
+        }
+
+        // Control functions
+        function ctrlPakan() {
+            toast("Memberi pakan...");
+            database.ref('control/pakan').set(true);
+            setTimeout(() => database.ref('control/pakan').set(false), 500);
+        }
+
+        function ctrlUV(state) {
+            toast(state ? "Menyalakan UV..." : "Mematikan UV...");
+            database.ref('control/uv').set(state);
+            document.getElementById('lamp-status').textContent = state ? 'Hidup' : 'Mati';
+            document.getElementById('lamp-toggle').checked = state;
+        }
+
+        function ctrlPompa(state) {
+            toast(state ? "Menyalakan pompa..." : "Mematikan pompa...");
+            database.ref('control/pompa').set(state);
+            document.getElementById('pump-status').textContent = state ? 'Hidup' : 'Mati';
+            document.getElementById('pump-toggle').checked = state;
+        }
+
+        function refreshNow() {
+            toast("Memperbarui data...");
+            updateSensorData();
+        }
+
+        // Toggle dark mode
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            const isDarkMode = document.body.classList.contains('dark-mode');
+            localStorage.setItem('darkMode', isDarkMode);
+            
+            // Update icon
+            const icon = document.querySelector('#darkModeToggle i');
+            const appIcon = document.querySelector('#app-darkModeToggle i');
+            if (isDarkMode) {
+                icon.className = 'fas fa-sun text-yellow-300';
+                appIcon.className = 'fas fa-sun text-yellow-300';
+            } else {
+                icon.className = 'fas fa-moon text-gray-700';
+                appIcon.className = 'fas fa-moon text-gray-700';
+            }
+        }
+
+        // Switch between sections
+        function switchSection(sectionId) {
+            pageSections.forEach(section => {
+                section.classList.remove('active-section');
+            });
+            document.getElementById(sectionId).classList.add('active-section');
+            
+            navLinks.forEach(link => {
+                link.classList.remove('tab-active');
+                if (link.getAttribute('data-section') === sectionId) {
+                    link.classList.add('tab-active');
+                }
+            });
+        }
+
+        // Event Listeners
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            loginPage.style.display = 'none';
+            appContainer.style.display = 'block';
+            initCharts();
+            updateSensorData();
+        });
+
+        logoutBtn.addEventListener('click', () => {
+            if (confirm('Apakah Anda yakin ingin keluar?')) {
+                loginPage.style.display = 'flex';
+                appContainer.style.display = 'none';
+            }
+        });
+
+        darkModeToggle.addEventListener('click', toggleDarkMode);
+        appDarkModeToggle.addEventListener('click', toggleDarkMode);
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                switchSection(link.getAttribute('data-section'));
+            });
+        });
+
+        document.getElementById('lamp-toggle').addEventListener('change', (e) => {
+            ctrlUV(e.target.checked);
+        });
+
+        document.getElementById('pump-toggle').addEventListener('change', (e) => {
+            ctrlPompa(e.target.checked);
+        });
+
+        // Initialize dark mode from localStorage
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.body.classList.add('dark-mode');
+            // Update icon
+            const icon = document.querySelector('#darkModeToggle i');
+            const appIcon = document.querySelector('#app-darkModeToggle i');
+            icon.className = 'fas fa-sun text-yellow-300';
+            appIcon.className = 'fas fa-sun text-yellow-300';
+        }
+
+        // Initialize the app
+        switchSection('dashboard');
+        
+        // Monitor connection status
+        const connectedRef = database.ref(".info/connected");
+        connectedRef.on("value", function(snap) {
+            updateConnectionStatus(snap.val() === true);
+        });
+    </script>
+</body>
+</html>
